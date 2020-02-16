@@ -100,7 +100,9 @@ def getMarkets(mode = 1, numMarkets = 0):
             tree = ET.fromstring(urllib.request.urlopen(request).read())
             root = parseNodes(tree)
         except urllib.error.HTTPError:
-            print ("Too many requests")
+            getMarkets(mode, numMarkets)
+            break
+            
 
         # Create the list of profitable markets
         profitableMarkets = []
@@ -139,7 +141,7 @@ def getMarkets(mode = 1, numMarkets = 0):
         printMarkets(profitableMarkets, numMarkets)
         if mode == '2':
             break
-        time.sleep(5)
+        time.sleep(20)
 
 # Get user input for mode of operation
 print("Modes of operation:")
