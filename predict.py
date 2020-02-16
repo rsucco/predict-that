@@ -23,27 +23,77 @@ def parseNodes(node):
 
     return pyObj
 
+def getProfitability(testMarket):
+    market = testMarket.copy()
+    
+    totalCost = 0.0
+    bets = sorted(market[3].copy(), key=float)
+    
+    highestReturn = 0
+    highestReturnNumBets = 0
+    for i in range(len(bets)):
+        totalCost += bets[i]
+        guaranteedReturn = float(i)
+        if (totalCost != 0):
+            returnPercentage = guaranteedReturn / totalCost
+        else:
+            returnPercentage = 0
+
+        if (returnPercentage > highestReturn):
+            highestReturn = returnPercentage
+            highestReturnNumBets = i
+    highestReturnNumBets += 1
+    
+    if (highestReturn > 1):
+        market.append(highestReturn)
+        market.append(highestReturnNumBets)
+        return market
+
+
 # Parse the data file and get the ElementTree root
 tree = ET.parse("./sampleallmarkets.xml").getroot()
 root = parseNodes(tree)
 
-# Sample to test that parsing is working properly and that we're pulling the data we need
+# Create the list of profitable markets
+profitableMarkets = []
 for market in root.Markets[0].MarketData:
-    for id in market.ID:
-        print("Market ID: " + id.text)
-    for name in market.ShortName:
-        print("Name: " + name.text)
+    # Initialize the list for this market
+    thisMarket = []
+    
+    # Add each contract to the market so we can check its total profitability
+    contractNames = []
+    contractPrices = []     
     for contract in market.Contracts[0].MarketContract:
-        
         # If this fails, that means that no shares of 'no' are trading
         try:
             contractName = contract.Name[0].text
+            contractNames.append(contractName)
             bestBuy = float(contract.BestBuyNoCost[0].text)
+            contractPrices.append(bestBuy)
             buyText = "{:.2f}".format(bestBuy)
-            print("Contract name: " + contractName)
-            print("Cost to buy no: $" + buyText)
         except AttributeError:
             pass
-    print("----------------------------")
+        
+    thisMarket.append(market.ID)
+    thisMarket.append(market.ShortName)
+    thisMarket.append(contractNames)
+    thisMarket.append(contractPrices)
+    isProfitable = getProfitability(thisMarket)
+    if (isProfitable is not None):
+        profitableMarkets.append(isProfitable)
+
+profitableMarkets = sorted(profitableMarkets,key=lambda l:l[4], reverse=True)
+
+for market in profitableMarkets:
+    guaranteedReturn = round((market[4] - 1) * 100, 3)
+    maxBet = market[5] * 850.0
+    guaranteedProfit = maxBet * guaranteedReturn / 100
+    print("Market ID: " + market[0][0].text)
+    print(market[1][0].text)
+    print("Guaranteed return rate: " + str(guaranteedReturn) + "%")
+    print("Maximum bet: $" + str(maxBet) + " for a guaranteed profit of $" + str(guaranteedProfit))
+    print(str(market[5]) + " bets: "),
+    for i in range(market[5]):
+        print(market[2][i] + "  (" + str(market[3][i]) + "%)")
+    print("--------------")
     print("")
-    
